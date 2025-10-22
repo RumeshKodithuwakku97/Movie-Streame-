@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 // Your Google Sheets configuration
 const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY/edit?gid=1433568947#gid=1433568947`;
 
 // ⚠️ REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo6GqrXuoO9V346bQYLY2FpXPFcr7ulRpE5J_wkRlwRalZS0FJOP-cyjw34EgFREOO/exec'
