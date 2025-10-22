@@ -22,11 +22,14 @@ function App() {
     filteredMovies,
     currentFilter,
     searchTerm,
+    loading,
+    error,
     addMovie,
     updateMovie,
     deleteMovie,
     filterMovies,
-    searchMovies
+    searchMovies,
+    refreshMovies
   } = useMovies();
 
   useEffect(() => {
@@ -80,6 +83,92 @@ function App() {
         scrolled={scrolled}
       />
       
+      {/* Loading and Error States */}
+      {loading && (
+        <div style={{
+          background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+          color: 'white',
+          padding: '1rem',
+          textAlign: 'center',
+          marginTop: '100px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          backdropFilter: 'blur(10px)'
+        }}>
+          🎬 Loading movies from Google Sheets...
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+          color: 'white',
+          padding: '1rem',
+          textAlign: 'center',
+          marginTop: '100px',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          backdropFilter: 'blur(10px)'
+        }}>
+          ⚠️ {error} 
+          <button 
+            onClick={refreshMovies} 
+            style={{
+              marginLeft: '1rem',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Retry
+          </button>
+        </div>
+      )}
+
+      {/* Debug Info - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          background: 'rgba(0,0,0,0.8)',
+          color: '#00ff00',
+          padding: '0.5rem',
+          fontSize: '0.7rem',
+          position: 'fixed',
+          bottom: '80px',
+          right: '20px',
+          zIndex: 1000,
+          borderRadius: '4px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid #00ff00'
+        }}>
+          <div>📊 Movies: {movies.length}</div>
+          <div>🔍 Filter: {currentFilter}</div>
+          <button 
+            onClick={refreshMovies}
+            style={{
+              background: '#00ff00',
+              color: 'black',
+              border: 'none',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '2px',
+              fontSize: '0.6rem',
+              cursor: 'pointer',
+              marginTop: '0.2rem'
+            }}
+          >
+            Refresh Data
+          </button>
+        </div>
+      )}
+      
       <Hero />
       
       <MovieGrid
@@ -91,7 +180,7 @@ function App() {
       />
       
       <MovieGrid
-        movies={movies}
+        movies={movies.filter(movie => movie.downloadLink && movie.downloadLink !== '#')}
         title="Available for Download"
       />
 
@@ -103,6 +192,7 @@ function App() {
         onAddMovie={addMovie}
         onUpdateMovie={updateMovie}
         onDeleteMovie={deleteMovie}
+        onRefresh={refreshMovies}
       />
 
       <Footer />
