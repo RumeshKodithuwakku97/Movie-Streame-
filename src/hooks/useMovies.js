@@ -1,5 +1,11 @@
 import { useState, useEffect } from 'react';
 
+// Your Google Sheets configuration
+const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+// ⚠️ REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo6GqrXuoO9V346bQYLY2FpXPFcr7ulRpE5J_wkRlwRalZS0FJOP-cyjw34EgFREOO/exec'
 // Fallback sample data
 const fallbackMovies = [
   {
@@ -12,28 +18,6 @@ const fallbackMovies = [
     poster: "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_.jpg",
     streamLink: "#",
     downloadLink: "#"
-  },
-  {
-    id: 2,
-    title: "The Dark Knight",
-    year: "2008",
-    rating: "9.0/10",
-    genre: "Action, Crime, Drama",
-    description: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.",
-    poster: "https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_.jpg",
-    streamLink: "#",
-    downloadLink: "#"
-  },
-  {
-    id: 3,
-    title: "Pulp Fiction",
-    year: "1994",
-    rating: "8.9/10",
-    genre: "Crime, Drama",
-    description: "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption.",
-    poster: "https://m.media-amazon.com/images/M/MV5BNGNhMDIzZTUtNTBlZi00MTRlLWFjM2ItYzJjNDymmYzgyZjkXkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_.jpg",
-    streamLink: "#",
-    downloadLink: "#"
   }
 ];
 
@@ -42,42 +26,123 @@ export const useMovies = () => {
   const [filteredMovies, setFilteredMovies] = useState([]);
   const [currentFilter, setCurrentFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load movies - using fallback data for now
-  const loadMovies = async () => {
+  // Load movies from Google Sheets
+  const loadMoviesFromSheets = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Try to load from localStorage first
+      console.log('📡 Loading movies from Google Sheets...');
+      
+      const response = await fetch(SHEET_URL);
+      const text = await response.text();
+      
+      // Parse the Google Sheets JSONP response
+      const json = JSON.parse(text.substring(47).slice(0, -2));
+      
+      if (json.table && json.table.rows && json.table.rows.length > 0) {
+        const moviesData = json.table.rows.map((row, index) => {
+          const cells = row.c || [];
+          return {
+            id: index + 1,
+            title: cells[0]?.v || 'Unknown Title',
+            year: cells[1]?.v || 'Unknown Year',
+            rating: cells[2]?.v || 'N/A',
+            genre: cells[3]?.v || 'Unknown Genre',
+            description: cells[4]?.v || 'No description available.',
+            poster: cells[5]?.v || 'https://images.unsplash.com/photo-1485846234645-a62644f84728?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
+            streamLink: cells[6]?.v || '#',
+            downloadLink: cells[7]?.v || '#'
+          };
+        }).filter(movie => movie.title !== 'Unknown Title'); // Filter out empty rows
+        
+        setMovies(moviesData);
+        localStorage.setItem('moviestream-movies', JSON.stringify(moviesData));
+        console.log(`✅ Loaded ${moviesData.length} movies from Google Sheets`);
+        
+        if (moviesData.length === 0) {
+          setError('Google Sheet is empty. Using sample data.');
+          setMovies(fallbackMovies);
+        }
+      } else {
+        throw new Error('No data found in Google Sheet');
+      }
+    } catch (error) {
+      console.error('❌ Error loading from Google Sheets:', error);
+      setError('Failed to load from Google Sheets. Using local data.');
+      
+      // Fallback to localStorage or sample data
       const savedMovies = localStorage.getItem('moviestream-movies');
       if (savedMovies) {
         setMovies(JSON.parse(savedMovies));
       } else {
-        // Use fallback data
         setMovies(fallbackMovies);
-        localStorage.setItem('moviestream-movies', JSON.stringify(fallbackMovies));
       }
-    } catch (error) {
-      console.error('Error loading movies:', error);
-      setMovies(fallbackMovies);
     } finally {
       setLoading(false);
     }
   };
 
-  // Add movie (local storage only for now)
+  // Add movie to Google Sheets via Apps Script
+  const addMovieToSheets = async (movie) => {
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(movie)
+      });
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('❌ Error adding movie to Google Sheets:', error);
+      return { success: false, error: 'Failed to connect to Google Sheets' };
+    }
+  };
+
+  // Enhanced addMovie function
   const addMovie = async (movie) => {
-    const newMovie = {
-      ...movie,
-      id: movies.length > 0 ? Math.max(...movies.map(m => m.id)) + 1 : 1
-    };
-    
-    const updatedMovies = [newMovie, ...movies];
-    setMovies(updatedMovies);
-    localStorage.setItem('moviestream-movies', JSON.stringify(updatedMovies));
-    
-    return { success: true, message: 'Movie added successfully!' };
+    setLoading(true);
+    try {
+      // First try to save to Google Sheets
+      const sheetResult = await addMovieToSheets(movie);
+      
+      if (sheetResult.success) {
+        // Successfully saved to Google Sheets - reload data
+        await loadMoviesFromSheets();
+        return { 
+          success: true, 
+          message: '✅ Movie added successfully to Google Sheets!' 
+        };
+      } else {
+        // Fallback to local storage
+        const newMovie = {
+          ...movie,
+          id: movies.length > 0 ? Math.max(...movies.map(m => m.id)) + 1 : 1
+        };
+        
+        const updatedMovies = [newMovie, ...movies];
+        setMovies(updatedMovies);
+        localStorage.setItem('moviestream-movies', JSON.stringify(updatedMovies));
+        
+        return { 
+          success: true, 
+          message: '⚠️ Movie saved locally (Google Sheets not available)' 
+        };
+      }
+    } catch (error) {
+      console.error('Error adding movie:', error);
+      return { 
+        success: false, 
+        message: '❌ Failed to add movie' 
+      };
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateMovie = async (id, updatedMovie) => {
@@ -107,11 +172,11 @@ export const useMovies = () => {
   };
 
   const refreshMovies = () => {
-    loadMovies();
+    loadMoviesFromSheets();
   };
 
   useEffect(() => {
-    loadMovies();
+    loadMoviesFromSheets();
   }, []);
 
   useEffect(() => {
