@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 
-// Your Google Sheets configuration
+// Your exact URLs
 const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY/edit?gid=1433568947#gid=1433568947`;
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo6GqrXuoO9V346bQYLY2FpXPFcr7ulRpE5J_wkRlwRalZS0FJOP-cyjw34EgFREOO/exec';
 
-// ⚠️ REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo6GqrXuoO9V346bQYLY2FpXPFcr7ulRpE5J_wkRlwRalZS0FJOP-cyjw34EgFREOO/exec'
 // Fallback sample data
 const fallbackMovies = [
   {
@@ -33,61 +32,70 @@ export const useMovies = () => {
   const loadMoviesFromSheets = async () => {
     setLoading(true);
     setError(null);
+    
     try {
-      console.log('📡 Loading movies from Google Sheets...');
+      console.log('🔍 Loading from:', SHEET_URL);
       
       const response = await fetch(SHEET_URL);
       const text = await response.text();
       
+      if (text.includes('Google Docs')) {
+        throw new Error('Sheet is not publicly accessible');
+      }
+      
       // Parse the Google Sheets JSONP response
       const json = JSON.parse(text.substring(47).slice(0, -2));
       
-      if (json.table && json.table.rows && json.table.rows.length > 0) {
-        const moviesData = json.table.rows.map((row, index) => {
+      if (json.table && json.table.rows) {
+        const moviesData = json.table.rows.slice(1).map((row, index) => {
           const cells = row.c || [];
           return {
             id: index + 1,
-            title: cells[0]?.v || 'Unknown Title',
-            year: cells[1]?.v || 'Unknown Year',
+            title: cells[0]?.v || '',
+            year: cells[1]?.v || '',
             rating: cells[2]?.v || 'N/A',
-            genre: cells[3]?.v || 'Unknown Genre',
-            description: cells[4]?.v || 'No description available.',
+            genre: cells[3]?.v || '',
+            description: cells[4]?.v || '',
             poster: cells[5]?.v || 'https://images.unsplash.com/photo-1485846234645-a62644f84728?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60',
             streamLink: cells[6]?.v || '#',
             downloadLink: cells[7]?.v || '#'
           };
-        }).filter(movie => movie.title !== 'Unknown Title'); // Filter out empty rows
+        }).filter(movie => movie.title && movie.title.trim() !== '');
         
-        setMovies(moviesData);
-        localStorage.setItem('moviestream-movies', JSON.stringify(moviesData));
-        console.log(`✅ Loaded ${moviesData.length} movies from Google Sheets`);
-        
-        if (moviesData.length === 0) {
-          setError('Google Sheet is empty. Using sample data.');
-          setMovies(fallbackMovies);
+        if (moviesData.length > 0) {
+          setMovies(moviesData);
+          localStorage.setItem('moviestream-movies', JSON.stringify(moviesData));
+          console.log(`✅ Loaded ${moviesData.length} movies from Google Sheets`);
+        } else {
+          throw new Error('Sheet is empty or has no movie data');
         }
       } else {
-        throw new Error('No data found in Google Sheet');
+        throw new Error('Invalid sheet format');
       }
+      
     } catch (error) {
-      console.error('❌ Error loading from Google Sheets:', error);
-      setError('Failed to load from Google Sheets. Using local data.');
+      console.error('❌ Google Sheets error:', error);
       
       // Fallback to localStorage or sample data
       const savedMovies = localStorage.getItem('moviestream-movies');
-      if (savedMovies) {
+      if (savedMovies && JSON.parse(savedMovies).length > 0) {
         setMovies(JSON.parse(savedMovies));
+        setError('Using local data (Google Sheets: ' + error.message + ')');
       } else {
         setMovies(fallbackMovies);
+        localStorage.setItem('moviestream-movies', JSON.stringify(fallbackMovies));
+        setError('Using sample data (Google Sheets: ' + error.message + ')');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Add movie to Google Sheets via Apps Script
+  // Add movie to Google Sheets
   const addMovieToSheets = async (movie) => {
     try {
+      console.log('📤 Sending to Apps Script:', APPS_SCRIPT_URL);
+      
       const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
@@ -97,26 +105,29 @@ export const useMovies = () => {
       });
       
       const result = await response.json();
+      console.log('📥 Apps Script response:', result);
       return result;
+      
     } catch (error) {
-      console.error('❌ Error adding movie to Google Sheets:', error);
-      return { success: false, error: 'Failed to connect to Google Sheets' };
+      console.error('❌ Apps Script error:', error);
+      return { success: false, error: 'Failed to connect to Google Apps Script' };
     }
   };
 
   // Enhanced addMovie function
   const addMovie = async (movie) => {
     setLoading(true);
+    
     try {
       // First try to save to Google Sheets
       const sheetResult = await addMovieToSheets(movie);
       
       if (sheetResult.success) {
-        // Successfully saved to Google Sheets - reload data
+        // Success! Reload from sheets to get updated data
         await loadMoviesFromSheets();
         return { 
           success: true, 
-          message: '✅ Movie added successfully to Google Sheets!' 
+          message: '✅ Movie added to Google Sheets!' 
         };
       } else {
         // Fallback to local storage
@@ -131,14 +142,14 @@ export const useMovies = () => {
         
         return { 
           success: true, 
-          message: '⚠️ Movie saved locally (Google Sheets not available)' 
+          message: '⚠️ Movie saved locally (Google Sheets: ' + (sheetResult.error || 'Unavailable') + ')' 
         };
       }
     } catch (error) {
       console.error('Error adding movie:', error);
       return { 
         success: false, 
-        message: '❌ Failed to add movie' 
+        message: '❌ Failed to add movie: ' + error.message 
       };
     } finally {
       setLoading(false);
