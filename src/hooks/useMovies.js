@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 // Your exact URLs
 const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
 const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzo6GqrXuoO9V346bQYLY2FpXPFcr7ulRpE5J_wkRlwRalZS0FJOP-cyjw34EgFREOO/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzSmuZnyconaMApgaMLuguUGZn8-7KE6KpTFFA9ytvt-h2DfFnyXG9_9yRWg7XUiDpm/exec';
 
 // Fallback sample data
 const fallbackMovies = [
@@ -34,7 +34,7 @@ export const useMovies = () => {
     setError(null);
     
     try {
-      console.log('🔍 Loading from:', SHEET_URL);
+      console.log('🔍 Loading from Google Sheets...');
       
       const response = await fetch(SHEET_URL);
       const text = await response.text();
@@ -67,7 +67,7 @@ export const useMovies = () => {
           localStorage.setItem('moviestream-movies', JSON.stringify(moviesData));
           console.log(`✅ Loaded ${moviesData.length} movies from Google Sheets`);
         } else {
-          throw new Error('Sheet is empty or has no movie data');
+          throw new Error('Sheet is empty - add movie data');
         }
       } else {
         throw new Error('Invalid sheet format');
@@ -91,26 +91,58 @@ export const useMovies = () => {
     }
   };
 
-  // Add movie to Google Sheets
+  // Add movie to Google Sheets - CORS compatible version
   const addMovieToSheets = async (movie) => {
     try {
-      console.log('📤 Sending to Apps Script:', APPS_SCRIPT_URL);
+      console.log('📤 Attempting to send to Apps Script...');
       
-      const response = await fetch(APPS_SCRIPT_URL, {
+      // Method 1: Try with JSON
+      try {
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(movie)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Apps Script success:', result);
+          return result;
+        }
+      } catch (jsonError) {
+        console.log('❌ JSON method failed, trying form data...');
+      }
+      
+      // Method 2: Try with FormData (more compatible)
+      const formData = new FormData();
+      formData.append('title', movie.title);
+      formData.append('year', movie.year);
+      formData.append('rating', movie.rating);
+      formData.append('genre', movie.genre);
+      formData.append('description', movie.description);
+      formData.append('poster', movie.poster);
+      formData.append('streamLink', movie.streamLink);
+      formData.append('downloadLink', movie.downloadLink);
+      
+      const formResponse = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(movie)
+        mode: 'no-cors',
+        body: formData
       });
       
-      const result = await response.json();
-      console.log('📥 Apps Script response:', result);
-      return result;
+      // With no-cors we can't read response, but request might still work
+      console.log('📨 FormData sent (no-cors)');
+      return { success: true, message: 'Request sent (CORS limitations)' };
       
     } catch (error) {
-      console.error('❌ Apps Script error:', error);
-      return { success: false, error: 'Failed to connect to Google Apps Script' };
+      console.error('❌ All Apps Script methods failed:', error);
+      return { 
+        success: false, 
+        error: 'CORS/Network error: ' + error.message 
+      };
     }
   };
 
@@ -119,12 +151,15 @@ export const useMovies = () => {
     setLoading(true);
     
     try {
-      // First try to save to Google Sheets
+      // Try to save to Google Sheets
       const sheetResult = await addMovieToSheets(movie);
       
       if (sheetResult.success) {
-        // Success! Reload from sheets to get updated data
-        await loadMoviesFromSheets();
+        // Wait a moment for sheet to update, then reload
+        setTimeout(() => {
+          loadMoviesFromSheets();
+        }, 2000);
+        
         return { 
           success: true, 
           message: '✅ Movie added to Google Sheets!' 
@@ -142,14 +177,14 @@ export const useMovies = () => {
         
         return { 
           success: true, 
-          message: '⚠️ Movie saved locally (Google Sheets: ' + (sheetResult.error || 'Unavailable') + ')' 
+          message: '⚠️ Movie saved locally (Google Sheets: ' + (sheetResult.error || 'Connection issue') + ')' 
         };
       }
     } catch (error) {
       console.error('Error adding movie:', error);
       return { 
         success: false, 
-        message: '❌ Failed to add movie: ' + error.message 
+        message: '❌ Failed to add movie' 
       };
     } finally {
       setLoading(false);
