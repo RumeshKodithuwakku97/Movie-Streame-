@@ -3,9 +3,9 @@ import { useMovies } from './hooks/useMovies';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import MovieGrid from './components/MovieGrid';
-import AdminPanel from './components/AdminPanel';
 import Footer from './components/Footer';
 import VideoBackground from './components/VideoBackground';
+import AdminPanel from './components/AdminPanel';
 
 const ADMIN_CONFIG = {
   PASSWORD: 'admin123',
@@ -46,12 +46,14 @@ function App() {
     const adminSession = localStorage.getItem(ADMIN_CONFIG.SESSION_KEY);
     if (adminSession === 'true') {
       setIsAdminAuthenticated(true);
+      setShowAdmin(true);
     }
   }, []);
 
   const handleAdminLogin = (password) => {
     if (password === ADMIN_CONFIG.PASSWORD) {
       setIsAdminAuthenticated(true);
+      setShowAdmin(true);
       localStorage.setItem(ADMIN_CONFIG.SESSION_KEY, 'true');
     } else {
       alert('Invalid password!');
@@ -60,20 +62,174 @@ function App() {
 
   const handleAdminLogout = () => {
     setIsAdminAuthenticated(false);
-    localStorage.removeItem(ADMIN_CONFIG.SESSION_KEY);
     setShowAdmin(false);
+    localStorage.removeItem(ADMIN_CONFIG.SESSION_KEY);
   };
 
   const handleShowAdmin = () => {
     setShowAdmin(true);
-    setTimeout(() => {
-      const adminSection = document.getElementById('admin');
-      if (adminSection) {
-        adminSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
   };
 
+  const handleShowPublic = () => {
+    setShowAdmin(false);
+  };
+
+  // 🔐 ADMIN MODE - Show only admin panel
+  if (showAdmin && isAdminAuthenticated) {
+    return (
+      <div className="App">
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
+          padding: '2rem'
+        }}>
+          <div style={{
+            maxWidth: '1200px',
+            margin: '0 auto'
+          }}>
+            <header style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '2rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <h1 style={{ color: '#e50914', margin: 0 }}>
+                🎬 MovieStream Admin Panel
+              </h1>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  onClick={handleShowPublic}
+                  style={{
+                    background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  👁️ View Public Site
+                </button>
+                <button 
+                  onClick={handleAdminLogout}
+                  style={{
+                    background: 'linear-gradient(135deg, #666, #555)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </header>
+
+            {loading && (
+              <div style={{
+                background: 'linear-gradient(135deg, #2196F3, #1976D2)',
+                color: 'white',
+                padding: '1rem',
+                textAlign: 'center',
+                borderRadius: '8px',
+                marginBottom: '2rem'
+              }}>
+                📡 {movies.length > 0 ? 'Saving to Google Sheets...' : 'Loading movies from Google Sheets...'}
+              </div>
+            )}
+
+            {error && (
+              <div style={{
+                background: 'linear-gradient(135deg, #ff4444, #cc0000)',
+                color: 'white',
+                padding: '1rem',
+                textAlign: 'center',
+                borderRadius: '8px',
+                marginBottom: '2rem'
+              }}>
+                ⚠️ {error}
+                <button 
+                  onClick={refreshMovies}
+                  style={{
+                    marginLeft: '1rem',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Retry
+                </button>
+              </div>
+            )}
+
+            <AdminPanel
+              isAuthenticated={true}
+              onLogout={handleAdminLogout}
+              movies={movies}
+              onAddMovie={addMovie}
+              onUpdateMovie={updateMovie}
+              onDeleteMovie={deleteMovie}
+              onRefresh={refreshMovies}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔐 ADMIN LOGIN MODE
+  if (showAdmin && !isAdminAuthenticated) {
+    return (
+      <div className="App">
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem'
+        }}>
+          <div className="admin-login">
+            <h2 style={{ color: '#e50914', marginBottom: '2rem', textAlign: 'center' }}>
+              🎬 MovieStream Admin Login
+            </h2>
+            <input
+              type="password"
+              id="adminPassword"
+              placeholder="Enter Admin Password"
+              onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin(e.target.value)}
+            />
+            <button onClick={() => {
+              const password = document.getElementById('adminPassword').value;
+              handleAdminLogin(password);
+            }}>
+              Login to Admin Panel
+            </button>
+            <button 
+              onClick={handleShowPublic}
+              style={{
+                background: 'linear-gradient(135deg, #666, #555)',
+                marginTop: '1rem'
+              }}
+            >
+              ← Back to Public Site
+            </button>
+            <p style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: '#999' }}>
+              Default password: admin123
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🌐 PUBLIC MODE - Show main website
   return (
     <div className="App">
       <VideoBackground />
@@ -133,41 +289,6 @@ function App() {
           </button>
         </div>
       )}
-
-      {/* Debug Info - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{
-          background: 'rgba(0,0,0,0.8)',
-          color: '#00ff00',
-          padding: '0.5rem',
-          fontSize: '0.7rem',
-          position: 'fixed',
-          bottom: '80px',
-          right: '20px',
-          zIndex: 1000,
-          borderRadius: '4px',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid #00ff00'
-        }}>
-          <div>📊 Movies: {movies.length}</div>
-          <div>🔍 Filter: {currentFilter}</div>
-          <button 
-            onClick={refreshMovies}
-            style={{
-              background: '#00ff00',
-              color: 'black',
-              border: 'none',
-              padding: '0.2rem 0.5rem',
-              borderRadius: '2px',
-              fontSize: '0.6rem',
-              cursor: 'pointer',
-              marginTop: '0.2rem'
-            }}
-          >
-            Refresh Data
-          </button>
-        </div>
-      )}
       
       <Hero />
       
@@ -182,17 +303,6 @@ function App() {
       <MovieGrid
         movies={movies.filter(movie => movie.downloadLink && movie.downloadLink !== '#')}
         title="Available for Download"
-      />
-
-      <AdminPanel
-        isAuthenticated={isAdminAuthenticated}
-        onLogin={handleAdminLogin}
-        onLogout={handleAdminLogout}
-        movies={movies}
-        onAddMovie={addMovie}
-        onUpdateMovie={updateMovie}
-        onDeleteMovie={deleteMovie}
-        onRefresh={refreshMovies}
       />
 
       <Footer />
