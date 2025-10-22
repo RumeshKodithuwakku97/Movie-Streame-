@@ -1,134 +1,100 @@
 import { useState, useEffect } from 'react';
 
-// Your Google Sheets configuration
-const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+// ⚠️ REPLACE WITH YOUR GOOGLE APPS SCRIPT URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
 
 export const useMovies = () => {
   const [movies, setMovies] = useState([]);
-  const [filteredMovies, setFilteredMovies] = useState([]);
-  const [currentFilter, setCurrentFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load movies from Google Sheets
+  // Load movies from Google Sheets via Apps Script
   const loadMoviesFromSheets = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(SHEET_URL);
-      const text = await response.text();
+      const response = await fetch(`${APPS_SCRIPT_URL}?action=getMovies`);
+      const data = await response.json();
       
-      // Parse the Google Sheets JSONP response
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      
-      if (json.table && json.table.rows) {
-        const moviesData = json.table.rows.map((row, index) => {
-          const cells = row.c || [];
-          return {
-            id: index + 1,
-            title: cells[0]?.v || 'Unknown Title',
-            year: cells[1]?.v || 'Unknown Year',
-            rating: cells[2]?.v || 'N/A',
-            genre: cells[3]?.v || 'Unknown Genre',
-            description: cells[4]?.v || 'No description available.',
-            poster: cells[5]?.v || 'https://via.placeholder.com/300x450/333/fff?text=No+Poster',
-            streamLink: cells[6]?.v || '#',
-            downloadLink: cells[7]?.v || '#'
-          };
-        });
-        
-        setMovies(moviesData);
-        console.log(`✅ Loaded ${moviesData.length} movies from Google Sheets`);
+      if (data.movies) {
+        setMovies(data.movies);
+        console.log(`✅ Loaded ${data.movies.length} movies from Google Sheets`);
       } else {
-        throw new Error('No data found in sheet');
+        throw new Error('No movies data received');
       }
     } catch (error) {
       console.error('❌ Error loading from Google Sheets:', error);
-      setError('Failed to load movies. Using sample data instead.');
-      // Fallback to sample data
-      setMovies(getSampleMovies());
+      setError('Failed to load movies from Google Sheets');
     } finally {
       setLoading(false);
     }
   };
 
-  // Fallback sample data
-  const getSampleMovies = () => [
-    {
-      id: 1,
-      title: "Inception",
-      year: "2010",
-      rating: "8.8/10",
-      genre: "Sci-Fi, Action",
-      description: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
-      poster: "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_.jpg",
-      streamLink: "#",
-      downloadLink: "#"
-    },
-    {
-      id: 2,
-      title: "The Dark Knight",
-      year: "2008",
-      rating: "9.0/10",
-      genre: "Action, Crime, Drama",
-      description: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests.",
-      poster: "https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_.jpg",
-      streamLink: "#",
-      downloadLink: "#"
+  // Add movie to Google Sheets
+  const addMovieToSheets = async (movie) => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append('action', 'addMovie');
+      formData.append('title', movie.title);
+      formData.append('year', movie.year);
+      formData.append('rating', movie.rating);
+      formData.append('genre', movie.genre);
+      formData.append('description', movie.description);
+      formData.append('poster', movie.poster);
+      formData.append('streamLink', movie.streamLink);
+      formData.append('downloadLink', movie.downloadLink);
+
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('❌ Error adding movie to Google Sheets:', error);
+      return false;
     }
-  ];
+  };
+
+  // Enhanced addMovie function
+  const addMovie = async (movie) => {
+    setLoading(true);
+    try {
+      const success = await addMovieToSheets(movie);
+      
+      if (success) {
+        // Reload movies from sheets to get the latest data
+        await loadMoviesFromSheets();
+        return { success: true, message: 'Movie added successfully to Google Sheets!' };
+      } else {
+        throw new Error('Failed to save to Google Sheets');
+      }
+    } catch (error) {
+      console.error('Error adding movie:', error);
+      return { success: false, message: 'Failed to add movie to Google Sheets' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Enhanced updateMovie function
+  const updateMovie = async (id, updatedMovie) => {
+    // Implementation for update
+    // You can extend the Apps Script to handle updates
+    return { success: false, message: 'Update not implemented yet' };
+  };
+
+  // Enhanced deleteMovie function
+  const deleteMovie = async (id) => {
+    // Implementation for delete
+    // You can extend the Apps Script to handle deletes
+    return { success: false, message: 'Delete not implemented yet' };
+  };
 
   useEffect(() => {
     loadMoviesFromSheets();
   }, []);
-
-  useEffect(() => {
-    let filtered = movies;
-    
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(movie => 
-        movie.genre.toLowerCase().includes(currentFilter.toLowerCase())
-      );
-    }
-    
-    if (searchTerm) {
-      filtered = filtered.filter(movie =>
-        movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        movie.genre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        movie.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    setFilteredMovies(filtered);
-  }, [movies, currentFilter, searchTerm]);
-
-  const addMovie = (movie) => {
-    const newMovie = {
-      ...movie,
-      id: movies.length > 0 ? Math.max(...movies.map(m => m.id)) + 1 : 1
-    };
-    setMovies(prev => [newMovie, ...prev]);
-  };
-
-  const updateMovie = (id, updatedMovie) => {
-    setMovies(prev => prev.map(movie => 
-      movie.id === id ? { ...updatedMovie, id } : movie
-    ));
-  };
-
-  const deleteMovie = (id) => {
-    setMovies(prev => prev.filter(movie => movie.id !== id));
-  };
-
-  const filterMovies = (genre) => {
-    setCurrentFilter(genre);
-  };
-
-  const searchMovies = (term) => {
-    setSearchTerm(term);
-  };
 
   const refreshMovies = () => {
     loadMoviesFromSheets();
@@ -136,16 +102,11 @@ export const useMovies = () => {
 
   return {
     movies,
-    filteredMovies,
-    currentFilter,
-    searchTerm,
     loading,
     error,
     addMovie,
     updateMovie,
     deleteMovie,
-    filterMovies,
-    searchMovies,
     refreshMovies
   };
 };
