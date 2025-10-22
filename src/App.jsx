@@ -95,7 +95,7 @@ function App() {
               paddingBottom: '1rem',
               borderBottom: '1px solid rgba(255,255,255,0.1)'
             }}>
-              <h1 style={{ color: '#e50914', margin: 0 }}>
+              <h1 style={{ color: '#e50914', margin: 0, fontSize: '2.5rem' }}>
                 🎬 MovieStream Admin Panel
               </h1>
               <div style={{ display: 'flex', gap: '1rem' }}>
@@ -105,9 +105,11 @@ function App() {
                     background: 'linear-gradient(135deg, #2196F3, #1976D2)',
                     color: 'white',
                     border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
+                    padding: '0.8rem 1.5rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600'
                   }}
                 >
                   👁️ View Public Site
@@ -118,12 +120,14 @@ function App() {
                     background: 'linear-gradient(135deg, #666, #555)',
                     color: 'white',
                     border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
+                    padding: '0.8rem 1.5rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600'
                   }}
                 >
-                  Logout
+                  🚪 Logout
                 </button>
               </div>
             </header>
@@ -132,12 +136,14 @@ function App() {
               <div style={{
                 background: 'linear-gradient(135deg, #2196F3, #1976D2)',
                 color: 'white',
-                padding: '1rem',
+                padding: '1.5rem',
                 textAlign: 'center',
-                borderRadius: '8px',
-                marginBottom: '2rem'
+                borderRadius: '12px',
+                marginBottom: '2rem',
+                fontSize: '1.1rem',
+                fontWeight: '600'
               }}>
-                📡 {movies.length > 0 ? 'Saving to Google Sheets...' : 'Loading movies from Google Sheets...'}
+                📡 {movies.length > 0 ? 'Saving to Google Sheets...' : 'Loading movies from database...'}
               </div>
             )}
 
@@ -145,22 +151,28 @@ function App() {
               <div style={{
                 background: 'linear-gradient(135deg, #ff4444, #cc0000)',
                 color: 'white',
-                padding: '1rem',
+                padding: '1.5rem',
                 textAlign: 'center',
-                borderRadius: '8px',
-                marginBottom: '2rem'
+                borderRadius: '12px',
+                marginBottom: '2rem',
+                fontSize: '1.1rem',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '1rem'
               }}>
                 ⚠️ {error}
                 <button 
                   onClick={refreshMovies}
                   style={{
-                    marginLeft: '1rem',
-                    background: 'rgba(255,255,255,0.2)',
+                    background: 'rgba(255,255,255,0.3)',
                     border: 'none',
                     color: 'white',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
+                    padding: '0.7rem 1.2rem',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: '600'
                   }}
                 >
                   🔄 Retry
@@ -187,41 +199,94 @@ function App() {
   if (showAdmin && !isAdminAuthenticated) {
     return (
       <div className="App">
+        <VideoBackground />
         <div style={{
           minHeight: '100vh',
-          background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2rem'
+          padding: '2rem',
+          position: 'relative',
+          zIndex: 1
         }}>
-          <div className="admin-login">
-            <h2 style={{ color: '#e50914', marginBottom: '2rem', textAlign: 'center' }}>
-              🎬 MovieStream Admin Login
+          <div className="admin-login" style={{
+            background: 'rgba(20, 20, 30, 0.95)',
+            padding: '3rem',
+            borderRadius: '20px',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            maxWidth: '450px',
+            width: '100%',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ 
+              color: '#e50914', 
+              marginBottom: '2rem', 
+              fontSize: '2.2rem',
+              fontFamily: "'Playfair Display', serif"
+            }}>
+              🎬 MovieStream Admin
             </h2>
             <input
               type="password"
               id="adminPassword"
               placeholder="Enter Admin Password"
               onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                margin: '1rem 0',
+                border: 'none',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                fontSize: '1rem',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
             />
             <button onClick={() => {
               const password = document.getElementById('adminPassword').value;
               handleAdminLogin(password);
+            }} style={{
+              width: '100%',
+              padding: '1rem',
+              background: 'linear-gradient(135deg, #e50914, #b8070f)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1.1rem',
+              fontWeight: '600',
+              marginTop: '1rem',
+              boxShadow: '0 8px 25px rgba(229, 9, 20, 0.4)'
             }}>
-              Login to Admin Panel
+              🔐 Login to Admin Panel
             </button>
             <button 
               onClick={handleShowPublic}
               style={{
+                width: '100%',
+                padding: '1rem',
                 background: 'linear-gradient(135deg, #666, #555)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '600',
                 marginTop: '1rem'
               }}
             >
               ← Back to Public Site
             </button>
-            <p style={{ marginTop: '1.5rem', fontSize: '0.9rem', color: '#999' }}>
-              Default password: admin123
+            <p style={{ 
+              marginTop: '2rem', 
+              fontSize: '0.9rem', 
+              color: '#999',
+              fontStyle: 'italic'
+            }}>
+              Default password: <strong>admin123</strong>
             </p>
           </div>
         </div>
@@ -244,17 +309,20 @@ function App() {
         <div style={{
           background: 'linear-gradient(135deg, #2196F3, #1976D2)',
           color: 'white',
-          padding: '1rem',
+          padding: '1.2rem',
           textAlign: 'center',
-          marginTop: '100px',
+          marginTop: '80px',
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 999,
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(15px)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          fontSize: '1.1rem',
+          fontWeight: '600'
         }}>
-          🎬 Loading movies from Google Sheets...
+          🎬 Loading movies from database...
         </div>
       )}
 
@@ -262,30 +330,73 @@ function App() {
         <div style={{
           background: 'linear-gradient(135deg, #ff4444, #cc0000)',
           color: 'white',
-          padding: '1rem',
+          padding: '1.2rem',
           textAlign: 'center',
-          marginTop: '100px',
+          marginTop: '80px',
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           zIndex: 999,
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(15px)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          fontSize: '1.1rem',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '1rem'
         }}>
           ⚠️ {error} 
           <button 
             onClick={refreshMovies} 
             style={{
-              marginLeft: '1rem',
-              background: 'rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.3)',
               border: 'none',
               color: 'white',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer'
+              padding: '0.6rem 1.2rem',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: '600'
             }}
           >
             🔄 Retry
+          </button>
+        </div>
+      )}
+
+      {/* Debug Info - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          background: 'rgba(0,0,0,0.85)',
+          color: '#00ff00',
+          padding: '0.8rem',
+          textAlign: 'center',
+          position: 'fixed',
+          top: '80px',
+          left: 0,
+          right: 0,
+          zIndex: 998,
+          fontSize: '0.8rem',
+          fontFamily: 'monospace',
+          borderBottom: '1px solid #00ff00'
+        }}>
+          🐛 DEBUG: Movies: {movies.length} | Filter: {currentFilter} | Search: "{searchTerm}"
+          <button 
+            onClick={refreshMovies}
+            style={{
+              marginLeft: '1rem',
+              background: '#00ff00',
+              color: 'black',
+              border: 'none',
+              padding: '0.3rem 0.8rem',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.7rem',
+              fontWeight: 'bold'
+            }}
+          >
+            REFRESH
           </button>
         </div>
       )}
@@ -303,6 +414,17 @@ function App() {
       <MovieGrid
         movies={movies.filter(movie => movie.downloadLink && movie.downloadLink !== '#')}
         title="Available for Download"
+      />
+
+      <AdminPanel
+        isAuthenticated={isAdminAuthenticated}
+        onLogin={handleAdminLogin}
+        onLogout={handleAdminLogout}
+        movies={movies}
+        onAddMovie={addMovie}
+        onUpdateMovie={updateMovie}
+        onDeleteMovie={deleteMovie}
+        onRefresh={refreshMovies}
       />
 
       <Footer />
