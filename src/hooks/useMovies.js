@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 
-const SHEET_ID = '1zVKnh41lTYYJ-YxdKwXKTvshFPGtL2jwKs-a0dE64RY';
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+const SHEET_ID = '1wsZjdgXVDTysqNLHYskXzHxx2xfa1jLCqMQqucFSDw8';
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/1wsZjdgXVDTysqNLHYskXzHxx2xfa1jLCqMQqucFSDw8/edit?resourcekey=&gid=1601052091#gid=1601052091`;
 
 // ⚠️ REPLACE THIS WITH YOUR ACTUAL FORM URL
-const GOOGLE_FORM_URL = 'https://docs.google.com/spreadsheets/d/1BWwTNPbJ8OcomT1y9ta6yKEfy9dlGNKi-oowGfZ_I0Y/edit?usp=sharing';
+const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdvLttWBIzgMjN1mi3SDX7eva-X9vVXtW6Qnm_wkaMpIWds9A/viewform?usp=header';
 
 const FORM_IDS = {
   title: 'entry.515977332',      // Movie Title
